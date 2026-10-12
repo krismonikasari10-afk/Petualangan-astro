@@ -1,0 +1,1879 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Misi Luar Angkasa — Petualangan Jauh Dekat</title>
+<style>
+/* ============================================================
+   RESET & BASE
+   ============================================================ */
+* { margin:0; padding:0; box-sizing:border-box;
+    font-family:'Comic Sans MS','Segoe UI',sans-serif;
+    -webkit-tap-highlight-color:transparent; }
+html, body { height:100%; overflow:hidden; }
+body { background:#0a0e27; user-select:none; }
+
+#app { position:relative; width:100vw; height:100vh; overflow:hidden; }
+
+/* ============================================================
+   STARFIELD
+   ============================================================ */
+.stars-layer {
+  position:absolute; inset:0; pointer-events:none; overflow:hidden; z-index:1;
+}
+.star {
+  position:absolute; background:white; border-radius:50%;
+  animation: twinkle 2s ease-in-out infinite;
+}
+@keyframes twinkle { 0%,100%{opacity:0.3;} 50%{opacity:1;} }
+
+.meteor {
+  position:absolute; width:2px; height:2px; background:white;
+  box-shadow: 0 0 6px white, 0 0 12px #4FC3F7;
+  border-radius:50%;
+  animation: meteorFall 4s linear infinite;
+}
+.meteor::after {
+  content:''; position:absolute; top:0; left:0;
+  width:80px; height:2px;
+  background: linear-gradient(90deg,transparent,white);
+  transform: translateX(-80px);
+}
+@keyframes meteorFall {
+  from { transform: translate(100vw,-100vh); opacity:0; }
+  10% { opacity:1; }
+  to { transform: translate(-10vw,100vh); opacity:0; }
+}
+
+.planet {
+  position:absolute; border-radius:50%; pointer-events:none; z-index:1;
+  opacity: 0.85;
+  animation: planetFloat 20s ease-in-out infinite;
+}
+@keyframes planetFloat {
+  0%,100% { transform: translateY(0); }
+  50%     { transform: translateY(-20px); }
+}
+.planet::after {
+  content:''; position:absolute; inset:0; border-radius:50%;
+  box-shadow: inset -20px -20px 40px rgba(0,0,0,0.5);
+}
+
+/* ============================================================
+   SCREENS
+   ============================================================ */
+.screen {
+  position:absolute; inset:0; display:none;
+  flex-direction:column; align-items:center; justify-content:center;
+  padding:16px; overflow-y:auto; z-index:5;
+}
+.screen.active { display:flex; }
+
+/* ============================================================
+   ASTRO
+   ============================================================ */
+.astro-wrap {
+  position:relative; width:120px; height:150px;
+  flex-shrink: 0;
+  animation: astroFloat 3s ease-in-out infinite;
+}
+@keyframes astroFloat {
+  0%,100% { transform: translateY(0) rotate(-2deg); }
+  50%     { transform: translateY(-10px) rotate(2deg); }
+}
+.astro-wrap.celebrate { animation: astroCheer 0.5s ease-in-out 4; }
+@keyframes astroCheer {
+  0%,100% { transform: rotate(0) scale(1); }
+  25%     { transform: rotate(-15deg) scale(1.1) translateY(-10px); }
+  75%     { transform: rotate(15deg) scale(1.1) translateY(-10px); }
+}
+.astro-wrap.sad { animation: astroSad 0.6s ease-in-out 2; }
+@keyframes astroSad {
+  0%,100% { transform: rotate(0); }
+  50%     { transform: rotate(-8deg) translateY(6px); }
+}
+
+.astro-helmet {
+  position:absolute; width:70px; height:70px;
+  left:25px; top:0;
+  background: radial-gradient(circle at 35% 30%, rgba(255,255,255,0.9), rgba(79,195,247,0.35) 60%, rgba(13,71,161,0.5));
+  border-radius:50%;
+  border:4px solid #E3F2FD;
+  box-shadow: 0 0 25px rgba(79,195,247,0.7), inset 0 0 20px rgba(255,255,255,0.5);
+  overflow:hidden;
+}
+.astro-helmet::after {
+  content:''; position:absolute; top:8px; left:12px;
+  width:16px; height:10px; background:rgba(255,255,255,0.85);
+  border-radius:50%; filter: blur(2px);
+}
+.astro-face {
+  position:absolute; width:50px; height:50px;
+  left:10px; top:10px;
+  background: radial-gradient(circle at 40% 35%, #FFE0B2, #FFCC80);
+  border-radius:50%;
+}
+.astro-eye {
+  position:absolute; width:8px; height:10px;
+  background:#212121; border-radius:50%; top:18px;
+}
+.astro-eye::after {
+  content:''; position:absolute; width:3px; height:3px;
+  background:white; border-radius:50%; top:2px; left:2px;
+}
+.astro-eye.left { left:9px; }
+.astro-eye.right { left:29px; }
+.astro-smile {
+  position:absolute; width:12px; height:6px;
+  background:#5D4037; border-radius: 0 0 50% 50%;
+  left:15px; top:34px;
+}
+.astro-wrap.sad .astro-smile { border-radius: 50% 50% 0 0; top:36px; }
+.astro-blush {
+  position:absolute; width:7px; height:4px;
+  background:#FF8A80; border-radius:50%; top:30px; opacity:0.7;
+}
+.astro-blush.l { left:3px; }
+.astro-blush.r { right:3px; }
+
+.astro-body {
+  position:absolute; width:62px; height:52px;
+  left:29px; top:70px;
+  background: linear-gradient(180deg,#FFFFFF,#E3F2FD);
+  border-radius: 40% 40% 45% 45%;
+  border:4px solid #90CAF9;
+  box-shadow: inset -6px -6px 12px rgba(0,0,0,0.1);
+}
+.astro-body::before {
+  content:''; position:absolute; left:50%; top:8px;
+  transform: translateX(-50%);
+  width:22px; height:12px; background:#2196F3; border-radius:4px;
+}
+.astro-body::after {
+  content:'🚀'; position:absolute;
+  bottom:-8px; right:-12px; font-size:20px;
+  transform: rotate(-25deg);
+}
+.astro-arm {
+  position:absolute; width:12px; height:32px;
+  background: linear-gradient(180deg,#FFFFFF,#E3F2FD);
+  border:3px solid #90CAF9; border-radius:8px;
+  top:78px; transform-origin: top center;
+}
+.astro-arm.l { left:16px; transform: rotate(15deg); }
+.astro-arm.r { right:16px; transform: rotate(-15deg); }
+.astro-wrap.celebrate .astro-arm.l { animation: waveL 0.4s ease-in-out 4; }
+.astro-wrap.celebrate .astro-arm.r { animation: waveR 0.4s ease-in-out 4; }
+@keyframes waveL { 0%,100%{transform:rotate(15deg);} 50%{transform:rotate(-50deg);} }
+@keyframes waveR { 0%,100%{transform:rotate(-15deg);} 50%{transform:rotate(50deg);} }
+.astro-leg {
+  position:absolute; width:12px; height:26px;
+  background: linear-gradient(180deg,#FFFFFF,#E3F2FD);
+  border:3px solid #90CAF9; border-radius:8px;
+  top:120px;
+}
+.astro-leg.l { left:38px; }
+.astro-leg.r { right:38px; }
+.astro-leg::after {
+  content:''; position:absolute; bottom:-4px; left:-3px;
+  width:18px; height:8px; background:#546E7A; border-radius:6px;
+}
+
+/* ============================================================
+   UI CARD
+   ============================================================ */
+.ui-card {
+  background: rgba(13,20,50,0.92);
+  border-radius: 22px;
+  padding: 22px 26px;
+  border: 3px solid #4FC3F7;
+  box-shadow: 0 0 40px rgba(79,195,247,0.4), inset 0 0 30px rgba(79,195,247,0.08);
+  text-align:center; max-width: 680px; width:100%;
+  color:#E3F2FD;
+  animation: popIn 0.5s cubic-bezier(0.34,1.56,0.64,1);
+  z-index: 10;
+  position: relative;
+}
+@keyframes popIn {
+  from { transform: scale(0.7); opacity:0; }
+  to { transform: scale(1); opacity:1; }
+}
+
+.title-galaxy {
+  font-size: 2em; color:#FFEB3B; margin-bottom: 6px;
+  text-shadow: 0 0 12px #FFC107, 0 0 24px #FF9800;
+  letter-spacing: 1px;
+}
+.subtitle-galaxy { color:#81D4FA; margin-bottom: 18px; font-size: 1em; }
+
+input, select {
+  width:100%; padding:12px 18px; font-size:1em;
+  border:3px solid #4FC3F7; border-radius:16px;
+  background: rgba(255,255,255,0.95); color:#0a0e27;
+  outline:none; margin-bottom:12px; text-align:center;
+  font-weight:bold;
+}
+input:focus, select:focus {
+  border-color:#FFEB3B; box-shadow:0 0 0 4px rgba(255,235,59,0.3);
+}
+label.field-label {
+  display:block; text-align:left;
+  color:#81D4FA; font-size:0.85em; margin-bottom:4px; padding-left:6px;
+}
+
+.btn {
+  border:none; cursor:pointer; font-weight:bold;
+  padding: 12px 26px; font-size:1em;
+  border-radius: 30px; margin: 6px;
+  transition: all 0.2s;
+  box-shadow: 0 5px 0 rgba(0,0,0,0.25);
+  color: #0a0e27;
+}
+.btn:active:not(:disabled) { transform: translateY(3px); box-shadow: 0 2px 0 rgba(0,0,0,0.25); }
+.btn:disabled { opacity:0.5; cursor:not-allowed; }
+.btn-primary   { background: linear-gradient(180deg,#FFEB3B,#FFC107); }
+.btn-secondary { background: linear-gradient(180deg,#81D4FA,#0288D1); color:white; }
+.btn-success   { background: linear-gradient(180deg,#81C784,#388E3C); color:white; }
+.btn-warning   { background: linear-gradient(180deg,#FFB74D,#E65100); color:white; }
+.btn-danger    { background: linear-gradient(180deg,#E57373,#C62828); color:white; }
+.btn-small     { padding: 8px 16px; font-size:0.9em; }
+
+/* ============================================================
+   READING PANEL
+   ============================================================ */
+.reading-panel {
+  background: rgba(255,255,255,0.95); color:#0a0e27;
+  border-radius:18px; padding:20px;
+  text-align:left; line-height:1.7; font-size:1em;
+  max-height: 45vh; overflow-y:auto; margin: 12px 0;
+  border: 3px solid #FFC107;
+}
+.reading-panel h3 { color:#0288D1; text-align:center; margin-bottom:10px; }
+.reading-panel p { margin-bottom: 10px; text-indent: 24px; }
+.reading-panel.zoom { font-size:1.25em; }
+.reading-panel .note { font-size:0.8em; color:#546E7A; font-style:italic; text-indent:0; margin-top:12px; border-top:1px dashed #ccc; padding-top:8px; }
+
+/* ============================================================
+   GAME SCREEN
+   ============================================================ */
+.hud {
+  width:100%; max-width: 900px;
+  display:flex; justify-content:space-between; align-items:center;
+  background: rgba(13,20,50,0.92);
+  border-radius: 18px; padding: 8px 14px;
+  margin-bottom: 10px;
+  border:3px solid #4FC3F7;
+  box-shadow: 0 0 30px rgba(79,195,247,0.35);
+  color:#E3F2FD; font-weight:bold;
+  flex-wrap:wrap; gap:6px;
+  z-index: 10; position: relative;
+}
+.hud-item { display:flex; align-items:center; gap:5px; font-size:0.85em; }
+.progress-bar {
+  flex:1; height:12px; background: rgba(255,255,255,0.15);
+  border-radius:8px; overflow:hidden; min-width:80px;
+  border:2px solid #4FC3F7;
+}
+.progress-fill {
+  height:100%; width:0%;
+  background: linear-gradient(90deg,#4FC3F7,#FFEB3B);
+  border-radius:6px; transition: width 0.4s;
+}
+
+/* Layout grid 2 kolom — Astro KIRI, soal KANAN */
+.game-content {
+  width:100%; max-width: 900px;
+  background: rgba(13,20,50,0.92);
+  border-radius: 22px; padding: 16px;
+  border:3px solid #4FC3F7;
+  box-shadow: 0 0 40px rgba(79,195,247,0.4);
+  color:#E3F2FD;
+  max-height: 78vh; overflow-y:auto;
+  z-index: 10; position: relative;
+  display: grid;
+  grid-template-columns: 130px 1fr;
+  grid-template-areas:
+    "astro question"
+    "astro answers"
+    "astro feedback"
+    "astro actions";
+  gap: 10px 14px;
+  align-items: start;
+}
+.astro-cell {
+  grid-area: astro;
+  display:flex; flex-direction:column; align-items:center;
+  position: sticky; top: 0;
+}
+.astro-cell .dialog {
+  font-size: 0.75em; padding: 8px 10px; margin-top: 8px;
+  border-radius: 12px; width: 100%; text-align: center;
+  line-height: 1.3; max-height: 130px; overflow-y: auto;
+  background: rgba(255,255,255,0.95); color:#0a0e27;
+  border: 3px solid #4FC3F7;
+}
+.question-cell { grid-area: question; }
+.answers-cell  { grid-area: answers; }
+.feedback-cell { grid-area: feedback; }
+.actions-cell  { grid-area: actions; }
+
+.question-box {
+  background: linear-gradient(135deg, rgba(255,235,59,0.15), rgba(255,193,7,0.08));
+  border: 3px solid #FFC107;
+  border-radius: 16px;
+  padding: 14px 16px;
+  font-size: 1.05em; color:#FFEB3B;
+  text-align:left; width:100%;
+  line-height:1.4;
+  min-height: 70px;
+}
+.question-box strong { color:#FF9800; }
+.question-box .q-num { color:#4FC3F7; font-size:0.9em; display:block; margin-bottom:4px; }
+
+.answers-grid {
+  display:grid; grid-template-columns: repeat(auto-fit, minmax(160px,1fr));
+  gap: 10px; width:100%;
+}
+.answer-btn {
+  padding: 14px 12px; font-size:1em; font-weight:bold;
+  background: rgba(255,255,255,0.95); color:#0a0e27;
+  border:3px solid #4FC3F7; border-radius:14px;
+  cursor:pointer; transition: all 0.2s;
+  box-shadow: 0 4px 0 rgba(79,195,247,0.4);
+  text-align:left;
+}
+.answer-btn:hover:not(:disabled) {
+  background:#E1F5FE; transform: translateY(-3px);
+  box-shadow: 0 7px 0 rgba(79,195,247,0.6);
+}
+.answer-btn:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 2px 0 rgba(79,195,247,0.4); }
+.answer-btn:disabled { cursor:not-allowed; }
+.answer-btn.correct {
+  background: linear-gradient(180deg,#A5D6A7,#4CAF50);
+  color:white; border-color:#2E7D32;
+  animation: pulse 0.5s ease 2;
+}
+.answer-btn.wrong {
+  background: linear-gradient(180deg,#EF9A9A,#E53935);
+  color:white; border-color:#B71C1C;
+  animation: shake 0.4s ease;
+}
+@keyframes pulse { 0%,100%{transform:scale(1);} 50%{transform:scale(1.06);} }
+@keyframes shake {
+  0%,100%{transform:translateX(0);}
+  25%,75%{transform:translateX(-8px);}
+  50%{transform:translateX(8px);}
+}
+
+.feedback-box {
+  min-height:28px; font-size:0.95em;
+  text-align:center; padding:6px; width:100%;
+  color:#E3F2FD;
+}
+.feedback-box.correct { color:#A5D6A7; }
+.feedback-box.wrong { color:#EF9A9A; }
+
+.game-actions {
+  display:flex; gap:8px; flex-wrap:wrap; justify-content:center;
+  margin-top:4px;
+}
+
+/* ============================================================
+   ROCKET
+   ============================================================ */
+.rocket {
+  position:absolute; width:55px; height:110px;
+  z-index: 8;
+  left:50%; bottom:16px;
+  transform: translateX(-50%);
+  pointer-events:none;
+}
+.rocket-body {
+  position:absolute; inset:0;
+  background: linear-gradient(180deg,#FFFFFF 0%,#E3F2FD 50%,#90CAF9 100%);
+  border-radius: 50% 50% 20% 20% / 60% 60% 20% 20%;
+  border:3px solid #546E7A;
+  box-shadow: inset -6px 0 12px rgba(0,0,0,0.15);
+}
+.rocket-window {
+  position:absolute; width:20px; height:20px;
+  background: radial-gradient(circle,#81D4FA,#0288D1);
+  border:3px solid #455A64; border-radius:50%;
+  top:24px; left:50%; transform: translateX(-50%);
+  box-shadow: 0 0 10px #29B6F6;
+}
+.rocket-fin {
+  position:absolute; width:14px; height:24px;
+  background:#E53935; border:2px solid #B71C1C;
+  bottom:0;
+}
+.rocket-fin.l { left:-11px; border-radius: 50% 0 0 50%; }
+.rocket-fin.r { right:-11px; border-radius: 0 50% 50% 0; }
+.rocket-flame {
+  position:absolute; width:24px; height:44px;
+  bottom:-44px; left:50%; transform: translateX(-50%);
+  background: radial-gradient(ellipse at top, #FFF59D, #FF9800 40%, #D32F2F 80%, transparent);
+  border-radius: 50% 50% 50% 50% / 20% 20% 80% 80%;
+  filter: blur(2px); opacity:0;
+  animation: flameFlicker 0.15s ease-in-out infinite alternate;
+}
+.rocket.flying .rocket-flame { opacity:1; }
+@keyframes flameFlicker {
+  from { transform: translateX(-50%) scaleY(1); }
+  to   { transform: translateX(-50%) scaleY(1.25); }
+}
+.rocket.flying {
+  animation: rocketUp 1.6s cubic-bezier(0.5,0,0.8,1) forwards;
+}
+@keyframes rocketUp {
+  0%   { transform: translateX(-50%) translateY(0) rotate(0); }
+  20%  { transform: translateX(-50%) translateY(20px) rotate(-3deg); }
+  50%  { transform: translateX(-50%) translateY(-50vh) rotate(-2deg) scale(0.9); }
+  100% { transform: translateX(-50%) translateY(-120vh) rotate(-2deg) scale(0.5); opacity:0; }
+}
+.rocket.returning {
+  animation: rocketDown 1.6s cubic-bezier(0.3,0.8,0.5,1) forwards;
+}
+@keyframes rocketDown {
+  0%   { transform: translateX(-50%) translateY(-120vh) rotate(180deg) scale(0.5); opacity:0; }
+  50%  { transform: translateX(-50%) translateY(-50vh) rotate(180deg) scale(0.9); opacity:1; }
+  100% { transform: translateX(-50%) translateY(0) rotate(360deg); opacity:1; }
+}
+
+.smoke {
+  position:absolute; width:40px; height:40px;
+  background: radial-gradient(circle, rgba(255,255,255,0.9), rgba(200,200,200,0));
+  border-radius:50%; pointer-events:none; z-index: 7;
+  animation: smokeUp 1.5s ease-out forwards;
+}
+@keyframes smokeUp {
+  from { transform: translateY(0) scale(0.5); opacity:1; }
+  to   { transform: translateY(-200px) scale(2); opacity:0; }
+}
+
+/* ============================================================
+   BADGES
+   ============================================================ */
+.badge-fly {
+  position: fixed; z-index: 200;
+  width: 110px; height: 110px;
+  pointer-events: none;
+  left: 50%; bottom: -180px;
+  transform: translateX(-50%) scale(0.3);
+  opacity: 0;
+  filter: drop-shadow(0 0 25px gold);
+}
+.badge-fly.show { animation: badgeJourney 3.6s ease-in-out forwards; }
+@keyframes badgeJourney {
+  0%   { left:50%; bottom:-180px; transform:translateX(-50%) scale(0.3) rotate(0); opacity:0; }
+  15%  { left:50%; bottom:35%;   transform:translateX(-50%) scale(1.35) rotate(0); opacity:1; }
+  30%  { left:28%; bottom:48%;   transform:translateX(-50%) scale(1.2) rotate(-25deg); opacity:1; }
+  45%  { left:72%; bottom:58%;   transform:translateX(-50%) scale(1.2) rotate(25deg); opacity:1; }
+  60%  { left:32%; bottom:42%;   transform:translateX(-50%) scale(1.15) rotate(-15deg); opacity:1; }
+  75%  { left:68%; bottom:52%;   transform:translateX(-50%) scale(1.1) rotate(15deg); opacity:1; }
+  92%  { left:94%; top:6%;       transform:translateX(-50%) scale(0.5) rotate(0); opacity:1; }
+  100% { left:94%; top:6%;       transform:translateX(-50%) scale(0.15) rotate(0); opacity:0; }
+}
+
+.badge-svg { width:100%; height:100%; }
+
+.badge-popup {
+  position: fixed; inset:0; z-index: 210;
+  display:none; align-items:center; justify-content:center;
+  background: rgba(0,0,0,0.7); padding:20px;
+}
+.badge-popup.show { display:flex; }
+.badge-popup-card {
+  background: linear-gradient(180deg,#FFFFFF,#E3F2FD);
+  border-radius: 28px; padding: 28px;
+  max-width: 420px; text-align:center;
+  border: 5px solid #FFD700;
+  box-shadow: 0 20px 60px rgba(255,215,0,0.4);
+  animation: popIn 0.5s cubic-bezier(0.34,1.56,0.64,1);
+  color:#0a0e27;
+}
+.badge-popup-card h2 { color:#B8860B; margin: 12px 0 6px; }
+.badge-popup-card p { color:#37474F; line-height:1.5; margin-bottom: 8px; }
+
+.badge-collection {
+  display:grid; grid-template-columns: repeat(auto-fit, minmax(140px,1fr));
+  gap:14px; width:100%; max-width:720px; margin-top:12px;
+}
+.badge-item {
+  background: rgba(255,255,255,0.95); border-radius:18px;
+  padding: 12px; text-align:center;
+  border: 3px solid #FFC107; color:#0a0e27;
+  transition: transform 0.3s;
+}
+.badge-item:hover { transform: translateY(-6px); }
+.badge-item.locked { filter: grayscale(1); opacity: 0.55; }
+.badge-item .badge-name { font-weight:bold; color:#B8860B; margin-top:6px; font-size:0.9em; }
+.badge-item .badge-desc { font-size:0.75em; color:#455A64; margin-top:4px; }
+
+/* ============================================================
+   MODALS
+   ============================================================ */
+.modal-overlay {
+  position: fixed; inset:0; z-index: 300;
+  background: rgba(0,0,0,0.75);
+  display:none; align-items:center; justify-content:center;
+  padding:20px;
+}
+.modal-overlay.show { display:flex; }
+.modal-card {
+  background: linear-gradient(180deg,#FFFFFF,#E3F2FD);
+  border-radius: 22px; padding: 24px 28px;
+  max-width: 540px; width:100%; text-align:center;
+  border: 5px solid #4FC3F7;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  animation: popIn 0.4s ease;
+  max-height: 90vh; overflow-y:auto;
+  color:#0a0e27;
+}
+.modal-card h2 { color:#0288D1; margin-bottom:10px; }
+.modal-card p { color:#37474F; line-height:1.6; margin:6px 0; }
+.modal-actions { margin-top:16px; display:flex; gap:8px; flex-wrap:wrap; justify-content:center; }
+.big-emoji { font-size:3.5em; margin-bottom:6px; }
+
+/* ============================================================
+   RESULT
+   ============================================================ */
+.result-grid {
+  display:grid; grid-template-columns: 1fr 1fr; gap:10px;
+  width:100%; margin:14px 0;
+}
+.result-item {
+  background: rgba(255,255,255,0.95); border-radius:12px;
+  padding:10px; border-left:5px solid #4FC3F7;
+  text-align:left; color:#0a0e27; font-size:0.9em;
+}
+.result-item .label { font-size:0.75em; color:#546E7A; }
+.result-item .value { font-weight:bold; font-size:1.1em; color:#0288D1; word-break:break-word; }
+
+/* ============================================================
+   CORNER BUTTONS
+   ============================================================ */
+.corner-btn {
+  position: fixed; top:12px; z-index: 400;
+  width: 46px; height:46px; border-radius:50%;
+  border: 3px solid #4FC3F7; background: rgba(13,20,50,0.9);
+  font-size: 1.2em; cursor:pointer;
+  box-shadow: 0 0 15px rgba(79,195,247,0.5);
+  display:flex; align-items:center; justify-content:center;
+  transition: transform 0.2s; color:white;
+}
+.corner-btn:hover { transform: scale(1.08); }
+#musicBtn { left:12px; }
+#soundBtn { left:66px; }
+#pauseBtn { left:120px; }
+#homeBtn  { right:12px; }
+
+/* ============================================================
+   TEACHER PANEL
+   ============================================================ */
+.teacher-panel {
+  background: rgba(255,255,255,0.97);
+  color:#0a0e27;
+  border-radius:18px; padding:16px;
+  width:100%; text-align:left; margin:12px 0;
+}
+.teacher-panel textarea {
+  width:100%; min-height:100px; padding:10px;
+  border:2px solid #4FC3F7; border-radius:10px;
+  font-family: monospace; font-size:0.9em;
+  resize: vertical;
+}
+.teacher-panel h4 { color:#0288D1; margin-bottom:8px; }
+
+/* ============================================================
+   CONFETTI
+   ============================================================ */
+.confetti-star {
+  position: fixed; pointer-events:none; z-index: 250;
+  font-size: 24px;
+  animation: confettiFall 3s ease-in forwards;
+}
+@keyframes confettiFall {
+  from { transform: translateY(-50px) rotate(0); opacity:1; }
+  to   { transform: translateY(100vh) rotate(720deg); opacity:0; }
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media (max-width: 700px) {
+  .title-galaxy { font-size:1.5em; }
+  .ui-card { padding:16px; }
+  .answer-btn { font-size:0.9em; padding:12px 10px; }
+  .question-box { font-size:0.95em; }
+  .dialog { font-size:0.85em; }
+  .game-content { grid-template-columns: 90px 1fr; gap: 8px; }
+  .astro-wrap { width: 80px; height: 105px; transform: scale(0.75); transform-origin: top left; }
+  .astro-cell .dialog { font-size:0.7em; padding:6px; }
+  .corner-btn { width: 40px; height:40px; font-size:1em; }
+  #musicBtn { left:8px; }
+  #soundBtn { left:52px; }
+  #pauseBtn { left:96px; }
+  #homeBtn { right:8px; }
+}
+@media (max-width: 480px) {
+  .answers-grid { grid-template-columns: 1fr; }
+  .result-grid { grid-template-columns: 1fr; }
+  .game-content {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "astro"
+      "question"
+      "answers"
+      "feedback"
+      "actions";
+  }
+  .astro-cell { position: static; flex-direction: row; justify-content: center; }
+  .astro-cell .dialog { max-height: none; margin-left: 8px; text-align: left; }
+  .astro-wrap { transform: scale(0.6); }
+}
+
+@media print {
+  body { background: white; }
+  .corner-btn, .rocket, .stars-layer, .planet { display: none !important; }
+  .ui-card { box-shadow: none; border:2px solid #333; color:#000; background: white; }
+}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <div class="stars-layer" id="starsLayer"></div>
+
+  <button class="corner-btn" id="musicBtn" title="Musik Latar">🎵</button>
+  <button class="corner-btn" id="soundBtn" title="Efek Suara">🔊</button>
+  <button class="corner-btn" id="pauseBtn" title="Jeda">⏸️</button>
+  <button class="corner-btn" id="homeBtn" title="Menu">🏠</button>
+
+  <!-- ==================== IDENTITY ==================== -->
+  <div class="screen active" id="screen-identity">
+    <div class="ui-card" style="max-width:520px;">
+      <div style="font-size:3.5em; margin-bottom:6px;">🚀🌌</div>
+      <h1 class="title-galaxy">MISI LUAR ANGKASA</h1>
+      <p class="subtitle-galaxy">Petualangan Jauh Dekat — Bahasa Indonesia Kelas IV</p>
+
+      <label class="field-label">Nama Lengkap</label>
+      <input type="text" id="inputName" placeholder="Tulis namamu di sini..." maxlength="40" />
+
+      <label class="field-label">Kelas</label>
+      <select id="inputClass">
+        <option value="">-- Pilih Kelas --</option>
+        <option value="IV A">IV A</option>
+        <option value="IV B">IV B</option>
+        <option value="IV C">IV C</option>
+        <option value="IV D">IV D</option>
+        <option value="Lainnya">Lainnya</option>
+      </select>
+      <input type="text" id="inputClassOther" placeholder="Tulis kelasmu..." style="display:none; margin-top:-6px;" maxlength="20" />
+
+      <div style="margin-top:12px;">
+        <button class="btn btn-primary" id="btnStartMission">🚀 MULAI PETUALANGAN</button>
+        <button class="btn btn-secondary btn-small" id="btnTeacherPanel">👨‍🏫 Panel Guru</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== READING ==================== -->
+  <div class="screen" id="screen-reading">
+    <div class="ui-card" style="max-width:760px;">
+      <h1 class="title-galaxy" style="font-size:1.5em;">📖 Jauh Dekat</h1>
+      <p class="subtitle-galaxy">Bacalah teks berikut dengan teliti, ya!</p>
+
+      <div class="reading-panel" id="readingPanel"></div>
+
+      <div style="margin-top:10px;">
+        <button class="btn btn-secondary btn-small" id="btnZoom">🔍 Perbesar Teks</button>
+        <button class="btn btn-secondary btn-small" id="btnZoomOut">🔎 Perkecil Teks</button>
+      </div>
+
+      <div style="display:flex; align-items:flex-start; gap:12px; margin-top:14px; justify-content:center;">
+        <div class="astro-wrap" id="astroReading">
+          <div class="astro-helmet">
+            <div class="astro-face">
+              <div class="astro-eye left"></div>
+              <div class="astro-eye right"></div>
+              <div class="astro-blush l"></div>
+              <div class="astro-blush r"></div>
+              <div class="astro-smile"></div>
+            </div>
+          </div>
+          <div class="astro-body"></div>
+          <div class="astro-arm l"></div>
+          <div class="astro-arm r"></div>
+          <div class="astro-leg l"></div>
+          <div class="astro-leg r"></div>
+        </div>
+        <div class="dialog" id="astroReadingDialog" style="background:rgba(255,255,255,0.95); color:#0a0e27; border-radius:16px; padding:12px 16px; flex:1; max-width:420px; border:3px solid #4FC3F7; text-align:left; font-size:0.95em; line-height:1.4;">
+          Bacalah teks dengan teliti, ya! Setiap jawaban benar akan membawaku ke luar angkasa!
+        </div>
+      </div>
+
+      <div style="margin-top:12px;">
+        <button class="btn btn-success" id="btnContinue">📚 LANJUTKAN MISI</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== GAME ==================== -->
+  <div class="screen" id="screen-game">
+    <div class="hud">
+      <span class="hud-item"><span>⭐</span><span id="hudScore">0</span></span>
+      <span class="hud-item"><span>🌍</span><span id="hudMission">Misi 1</span></span>
+      <span class="hud-item"><span>❓</span><span id="hudProgressText">1/10</span></span>
+      <div class="progress-bar"><div class="progress-fill" id="hudProgressFill"></div></div>
+      <span class="hud-item"><span>🎯</span><span id="hudAccuracy">0%</span></span>
+    </div>
+
+    <div class="game-content">
+      <div class="astro-cell">
+        <div class="astro-wrap" id="astroGame">
+          <div class="astro-helmet">
+            <div class="astro-face">
+              <div class="astro-eye left"></div>
+              <div class="astro-eye right"></div>
+              <div class="astro-blush l"></div>
+              <div class="astro-blush r"></div>
+              <div class="astro-smile"></div>
+            </div>
+          </div>
+          <div class="astro-body"></div>
+          <div class="astro-arm l"></div>
+          <div class="astro-arm r"></div>
+          <div class="astro-leg l"></div>
+          <div class="astro-leg r"></div>
+        </div>
+        <div class="dialog" id="astroGameDialog">Ayo mulai misi!</div>
+      </div>
+
+      <div class="question-cell">
+        <div class="question-box" id="questionBox">Memuat soal...</div>
+      </div>
+
+      <div class="answers-cell">
+        <div class="answers-grid" id="answersGrid"></div>
+      </div>
+
+      <div class="feedback-cell">
+        <div class="feedback-box" id="feedbackBox"></div>
+      </div>
+
+      <div class="actions-cell">
+        <div class="game-actions">
+          <button class="btn btn-warning btn-small" id="btnHint">💡 Petunjuk</button>
+          <button class="btn btn-primary" id="btnCheck" disabled>✅ Periksa</button>
+          <button class="btn btn-success" id="btnNext" style="display:none;">➡️ Lanjut</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="rocket" id="rocket">
+      <div class="rocket-fin l"></div>
+      <div class="rocket-fin r"></div>
+      <div class="rocket-body"></div>
+      <div class="rocket-window"></div>
+      <div class="rocket-flame"></div>
+    </div>
+  </div>
+
+  <!-- ==================== RESULT ==================== -->
+  <div class="screen" id="screen-result">
+    <div class="ui-card" style="max-width:700px;">
+      <div style="font-size:3.5em;">🏆🌟</div>
+      <h1 class="title-galaxy" style="font-size:1.5em;">LAPORAN MISI PENJELAJAH</h1>
+      <p class="subtitle-galaxy" id="resultGreeting">Selamat, Penjelajah!</p>
+
+      <div class="result-grid">
+        <div class="result-item"><div class="label">Nama Lengkap</div><div class="value" id="rName">-</div></div>
+        <div class="result-item"><div class="label">Kelas</div><div class="value" id="rClass">-</div></div>
+        <div class="result-item"><div class="label">Mata Pelajaran</div><div class="value">Bahasa Indonesia</div></div>
+        <div class="result-item"><div class="label">Materi</div><div class="value">Teks "Jauh Dekat"</div></div>
+        <div class="result-item"><div class="label">Soal Diselesaikan</div><div class="value" id="rTotal">0</div></div>
+        <div class="result-item"><div class="label">Jawaban Benar</div><div class="value" id="rCorrect">0</div></div>
+        <div class="result-item"><div class="label">Jawaban Salah</div><div class="value" id="rWrong">0</div></div>
+        <div class="result-item"><div class="label">Skor Akhir</div><div class="value" id="rScore">0</div></div>
+        <div class="result-item"><div class="label">Ketepatan</div><div class="value" id="rAccuracy">0%</div></div>
+        <div class="result-item"><div class="label">Status</div><div class="value" id="rStatus">-</div></div>
+      </div>
+
+      <div style="background:rgba(255,255,255,0.95); border-radius:14px; padding:12px; margin-top:8px; color:#0a0e27; text-align:left; font-size:0.9em;">
+        <strong style="color:#0288D1;">🏅 Lencana yang Diperoleh:</strong>
+        <div id="rBadges" style="margin-top:6px;">-</div>
+      </div>
+
+      <div class="modal-actions" style="margin-top:14px;">
+        <button class="btn btn-primary" id="btnPlayAgain">🔁 MAIN LAGI</button>
+        <button class="btn btn-secondary" id="btnPrint">🖨️ CETAK HASIL</button>
+        <button class="btn btn-warning" id="btnToMenuFromResult">🏠 KEMBALI KE MENU</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== BADGES ==================== -->
+  <div class="screen" id="screen-badges">
+    <div class="ui-card" style="max-width:800px;">
+      <h1 class="title-galaxy" style="font-size:1.4em;">🏅 KOLEKSI LENCANA</h1>
+      <p class="subtitle-galaxy">Kumpulkan semua lencana luar angkasa!</p>
+      <div class="badge-collection" id="badgeCollection"></div>
+      <div style="margin-top:14px;">
+        <button class="btn btn-secondary" id="btnBackFromBadges">⬅️ Kembali</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== TEACHER ==================== -->
+  <div class="screen" id="screen-teacher">
+    <div class="ui-card" style="max-width:820px;">
+      <h1 class="title-galaxy" style="font-size:1.3em;">👨‍🏫 PANEL GURU</h1>
+      <p class="subtitle-galaxy">Ubah teks & soal bila perlu, atau lihat rekap siswa.</p>
+
+      <div class="teacher-panel">
+        <h4>📖 Teks Bacaan "Jauh Dekat"</h4>
+        <textarea id="teacherText"></textarea>
+
+        <h4 style="margin-top:14px;">📝 Soal & Kunci Jawaban (format JSON)</h4>
+        <textarea id="teacherQuestions" style="min-height:220px;"></textarea>
+        <p style="font-size:0.85em; color:#546E7A; margin-top:6px;">
+          Tipe: <b>mc</b> (correct = index 0-3) atau <b>tf</b> (correct = true/false). Mission: 1, 2, atau 3.
+        </p>
+
+        <h4 style="margin-top:14px;">📊 Rekap Hasil Siswa</h4>
+        <div id="teacherRecap" style="background:rgba(79,195,247,0.1); border-radius:10px; padding:10px; font-size:0.9em; min-height:40px; max-height:200px; overflow-y:auto;">
+          Belum ada data.
+        </div>
+        <button class="btn btn-success btn-small" id="btnDownloadCSV" style="margin-top:8px;">📥 Unduh Rekap (CSV)</button>
+        <button class="btn btn-danger btn-small" id="btnClearRecap">🗑️ Hapus Rekap</button>
+      </div>
+
+      <div class="modal-actions" style="margin-top:10px;">
+        <button class="btn btn-primary" id="btnSaveTeacher">💾 Simpan</button>
+        <button class="btn btn-secondary" id="btnCloseTeacher">⬅️ Kembali</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODALS ==================== -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal-card">
+      <div class="big-emoji" id="modalEmoji">💬</div>
+      <h2 id="modalTitle">Pesan</h2>
+      <p id="modalMessage"></p>
+      <div class="modal-actions" id="modalActions"></div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="pauseModal">
+    <div class="modal-card">
+      <div class="big-emoji">⏸️</div>
+      <h2>Jeda Misi</h2>
+      <p>Mau lanjut atau kembali ke pangkalan?</p>
+      <div class="modal-actions">
+        <button class="btn btn-success" id="btnResume">▶️ Lanjut</button>
+        <button class="btn btn-warning" id="btnRestartMission">🔄 Ulangi Misi</button>
+        <button class="btn btn-danger" id="btnToMenuPause">🏠 Menu</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="badge-popup" id="badgePopup">
+    <div class="badge-popup-card">
+      <div id="badgePopupVisual" style="width:150px; height:150px; margin:0 auto;"></div>
+      <h2 id="badgePopupTitle">Lencana Baru!</h2>
+      <p id="badgePopupDesc">Kamu mendapatkannya karena hebat!</p>
+      <button class="btn btn-primary" id="btnCloseBadgePopup">Lanjut</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* ============================================================
+   AUDIO ENGINE + MUSIK LATAR
+   ============================================================ */
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let audioCtx = null;
+let sfxEnabled = true;
+let musicEnabled = true;
+let musicNodes = null;
+let musicPlaying = false;
+
+function ensureAudio() {
+  if (!audioCtx && AudioCtx) audioCtx = new AudioCtx();
+  if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+}
+
+function beep(freq, dur=0.12, type='sine', vol=0.15) {
+  if (!sfxEnabled) return;
+  ensureAudio(); if (!audioCtx) return;
+  const o = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  o.type = type; o.frequency.value = freq;
+  g.gain.setValueAtTime(vol, audioCtx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
+  o.connect(g); g.connect(audioCtx.destination);
+  o.start(); o.stop(audioCtx.currentTime + dur);
+}
+function sfxCorrect() { beep(660,0.1); setTimeout(()=>beep(880,0.12),90); setTimeout(()=>beep(1100,0.15),190); }
+function sfxWrong()   { beep(300,0.15,'square',0.15); setTimeout(()=>beep(220,0.2,'square',0.15),130); }
+function sfxClick()   { beep(560,0.06,'square',0.08); }
+
+function sfxLaunch() {
+  if (!sfxEnabled) return; ensureAudio(); if (!audioCtx) return;
+  const o = audioCtx.createOscillator(); const g = audioCtx.createGain();
+  o.type='sawtooth'; o.frequency.setValueAtTime(80, audioCtx.currentTime);
+  o.frequency.exponentialRampToValueAtTime(600, audioCtx.currentTime+1.4);
+  g.gain.setValueAtTime(0.15, audioCtx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime+1.5);
+  o.connect(g); g.connect(audioCtx.destination);
+  o.start(); o.stop(audioCtx.currentTime+1.5);
+}
+function sfxLanding() {
+  if (!sfxEnabled) return; ensureAudio(); if (!audioCtx) return;
+  const o = audioCtx.createOscillator(); const g = audioCtx.createGain();
+  o.type='sawtooth'; o.frequency.setValueAtTime(500, audioCtx.currentTime);
+  o.frequency.exponentialRampToValueAtTime(60, audioCtx.currentTime+1.3);
+  g.gain.setValueAtTime(0.15, audioCtx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime+1.4);
+  o.connect(g); g.connect(audioCtx.destination);
+  o.start(); o.stop(audioCtx.currentTime+1.4);
+}
+function sfxBadge() { [523,659,784,1046,1318].forEach((f,i)=>setTimeout(()=>beep(f,0.16,'triangle',0.18), i*100)); }
+function sfxMissionComplete() { [523,659,784,1046].forEach((f,i)=>setTimeout(()=>beep(f,0.18,'sine',0.2), i*130)); }
+
+/* ---------- MUSIK LATAR ---------- */
+const MUSIC_NOTES = [
+  392.00, 440.00, 523.25, 587.33, 659.25, 587.33, 523.25, 440.00,
+  392.00, 349.23, 392.00, 440.00, 523.25, 587.33, 523.25, 440.00
+];
+function startMusic() {
+  if (!musicEnabled || musicPlaying) return;
+  ensureAudio(); if (!audioCtx) return;
+  try {
+    const masterGain = audioCtx.createGain();
+    masterGain.gain.value = 0.045;
+    masterGain.connect(audioCtx.destination);
+    const filter = audioCtx.createBiquadFilter();
+    filter.type = 'lowpass'; filter.frequency.value = 1400;
+    filter.connect(masterGain);
+    const drone = audioCtx.createOscillator();
+    const droneGain = audioCtx.createGain();
+    drone.type = 'sine'; drone.frequency.value = 130.81;
+    droneGain.gain.value = 0.04;
+    drone.connect(droneGain); droneGain.connect(filter);
+    drone.start();
+    let noteIdx = 0; let stopped = false;
+    const noteDuration = 0.55;
+    function playNextNote() {
+      if (stopped || !musicPlaying) return;
+      const f = MUSIC_NOTES[noteIdx % MUSIC_NOTES.length];
+      const o = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      o.type = 'triangle'; o.frequency.value = f;
+      g.gain.setValueAtTime(0, audioCtx.currentTime);
+      g.gain.linearRampToValueAtTime(0.12, audioCtx.currentTime + 0.05);
+      g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + noteDuration);
+      o.connect(g); g.connect(filter);
+      o.start(); o.stop(audioCtx.currentTime + noteDuration);
+      noteIdx++;
+      setTimeout(playNextNote, noteDuration * 1000);
+    }
+    musicNodes = { masterGain, filter, drone, droneGain, stop: () => {
+      stopped = true;
+      try { drone.stop(); } catch(e){}
+      try { masterGain.disconnect(); } catch(e){}
+    }};
+    musicPlaying = true;
+    playNextNote();
+  } catch(e) { console.warn('Music error', e); }
+}
+function stopMusic() {
+  if (musicNodes && musicNodes.stop) musicNodes.stop();
+  musicNodes = null;
+  musicPlaying = false;
+}
+
+/* ============================================================
+   STARFIELD
+   ============================================================ */
+function buildStarfield() {
+  const layer = document.getElementById('starsLayer');
+  layer.innerHTML = '';
+  const w = window.innerWidth, h = window.innerHeight;
+  const count = Math.floor((w*h) / 9000);
+  for (let i=0;i<count;i++) {
+    const s = document.createElement('div');
+    s.className = 'star';
+    const size = Math.random()*2 + 1;
+    s.style.width = size + 'px';
+    s.style.height = size + 'px';
+    s.style.left = Math.random()*100 + '%';
+    s.style.top  = Math.random()*100 + '%';
+    s.style.animationDelay = (Math.random()*3) + 's';
+    s.style.animationDuration = (1.5 + Math.random()*2.5) + 's';
+    layer.appendChild(s);
+  }
+  const planets = [
+    { size:120, top:'8%',  left:'5%',  color:'radial-gradient(circle at 30% 30%, #FF8A65, #BF360C)' },
+    { size:80,  top:'70%', left:'85%', color:'radial-gradient(circle at 30% 30%, #81D4FA, #01579B)' },
+    { size:60,  top:'20%', left:'88%', color:'radial-gradient(circle at 30% 30%, #CE93D8, #4A148C)' },
+    { size:100, top:'80%', left:'8%',  color:'radial-gradient(circle at 30% 30%, #FFF59D, #F57F17)' }
+  ];
+  planets.forEach(p => {
+    const el = document.createElement('div');
+    el.className = 'planet';
+    el.style.width = p.size + 'px';
+    el.style.height = p.size + 'px';
+    el.style.top = p.top; el.style.left = p.left;
+    el.style.background = p.color;
+    el.style.animationDelay = (Math.random()*3) + 's';
+    layer.appendChild(el);
+  });
+  if (!window._meteorInterval) {
+    window._meteorInterval = setInterval(() => {
+      const m = document.createElement('div');
+      m.className = 'meteor';
+      m.style.left = (Math.random()*40 + 60) + 'vw';
+      m.style.top = (Math.random()*40) + 'vh';
+      layer.appendChild(m);
+      setTimeout(()=>m.remove(), 4000);
+    }, 4500);
+  }
+}
+buildStarfield();
+window.addEventListener('resize', () => buildStarfield());
+
+/* ============================================================
+   BADGES
+   ============================================================ */
+const BADGES = {
+  bumi:     { id:'bumi',     name:'Penjelajah Bumi',   desc:'Menyelesaikan Misi 1',   color:'#4CAF50', icon:'🌍' },
+  pilot:    { id:'pilot',    name:'Pilot Roket',       desc:'Menyelesaikan Misi 2',   color:'#FF9800', icon:'🚀' },
+  pemburu:  { id:'pemburu',  name:'Pemburu Informasi', desc:'Menemukan informasi penting', color:'#9C27B0', icon:'🔍' },
+  penakluk: { id:'penakluk', name:'Penakluk Galaksi',  desc:'Akurasi ≥ 80% di Misi 3', color:'#2196F3', icon:'🌌' },
+  juara:    { id:'juara',    name:'Juara Membaca',     desc:'Menyelesaikan seluruh permainan', color:'#F44336', icon:'🏆' }
+};
+
+function renderBadgeSVG(b, size=110) {
+  const c = b.color;
+  return `
+  <svg viewBox="0 0 100 100" width="${size}" height="${size}" class="badge-svg">
+    <defs>
+      <radialGradient id="bg-${b.id}" cx="35%" cy="30%">
+        <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.95"/>
+        <stop offset="45%" stop-color="${c}"/>
+        <stop offset="100%" stop-color="#1A237E"/>
+      </radialGradient>
+      <filter id="glow-${b.id}">
+        <feGaussianBlur stdDeviation="2.5" result="blur"/>
+        <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+      </filter>
+    </defs>
+    <ellipse cx="14" cy="50" rx="15" ry="10" fill="rgba(200,240,255,0.9)" stroke="#4DD0E1" stroke-width="1.5" transform="rotate(-25 14 50)"/>
+    <ellipse cx="86" cy="50" rx="15" ry="10" fill="rgba(200,240,255,0.9)" stroke="#4DD0E1" stroke-width="1.5" transform="rotate(25 86 50)"/>
+    <polygon points="50,4 58,20 76,20 62,32 70,50 50,40 30,50 38,32 24,20 42,20"
+             fill="#FFEB3B" opacity="0.35" filter="url(#glow-${b.id})"/>
+    <polygon points="50,12 84,31 84,69 50,88 16,69 16,31"
+             fill="url(#bg-${b.id})" stroke="#FFD700" stroke-width="3" filter="url(#glow-${b.id})"/>
+    <polygon points="50,18 78,34 78,66 50,82 22,66 22,34"
+             fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="1.5"/>
+    <text x="50" y="64" text-anchor="middle" font-size="30" font-family="Comic Sans MS">${b.icon}</text>
+  </svg>`;
+}
+
+/* ============================================================
+   STATE
+   ============================================================ */
+const GameState = {
+  name: '', kelas: '', score: 0,
+  correct: 0, wrong: 0, totalAnswered: 0,
+  currentQuestionIndex: 0,
+  missionsCompleted: [],
+  badges: [],
+  m3Correct: 0, m3Wrong: 0,
+  answeredWrongIds: new Set()
+};
+
+/* ============================================================
+   CONTENT — TEKS & SOAL "JAUH DEKAT" (SUDAH TERISI)
+   ============================================================ */
+const DEFAULT_TEXT = `Setiap hari, Dika berangkat ke sekolah bersama kakaknya. Rumah Dika sebenarnya tidak terlalu jauh dari sekolah. Namun, ketika hujan turun deras, perjalanan terasa lebih lama karena mereka harus berjalan dengan hati-hati.
+
+Suatu hari, Dika mendapat tugas membuat gambar lingkungan tempat tinggalnya. Ia menggambar rumah, sekolah, taman, dan perpustakaan. Dika meletakkan gambar rumah di dekat taman, sedangkan sekolah berada agak jauh dari rumahnya.
+
+Ibu membantu Dika memahami gambar tersebut. Ibu menjelaskan bahwa jarak dapat terlihat berbeda bergantung pada letak benda dan cara kita melihatnya. Sesuatu yang terlihat jauh pada gambar belum tentu sulit dijangkau dalam kehidupan nyata.
+
+Dika kemudian mengingat perpustakaan yang berada di dekat sekolahnya. Ia sering mengunjungi tempat itu untuk membaca buku bersama teman-temannya. Menurut Dika, perpustakaan terasa semakin dekat karena ia sering pergi ke sana.
+
+Dika menyadari bahwa memahami lingkungan tidak hanya tentang mengetahui jarak, tetapi juga mengenali tempat, arah, dan hubungan antara satu tempat dengan tempat lainnya.`;
+
+const DEFAULT_QUESTIONS = [
+  {
+    mission: 1, type: "mc",
+    q: "1. Apa tugas yang diberikan kepada Dika?",
+    options: [
+      "A. Membuat cerita tentang sekolah",
+      "B. Membuat gambar lingkungan tempat tinggal",
+      "C. Membuat peta perjalanan ke pasar",
+      "D. Menulis pengalaman saat hujan"
+    ],
+    correct: 1,
+    explain: "Pada paragraf kedua disebutkan bahwa Dika mendapat tugas membuat gambar lingkungan tempat tinggalnya.",
+    hint: "Baca paragraf kedua, cari kata 'tugas'."
+  },
+  {
+    mission: 1, type: "mc",
+    q: "2. Mengapa perjalanan Dika terasa lebih lama ketika hujan deras?",
+    options: [
+      "A. Karena sekolah ditutup",
+      "B. Karena Dika berjalan sendirian",
+      "C. Karena mereka harus berjalan dengan hati-hati",
+      "D. Karena mereka berhenti bermain"
+    ],
+    correct: 2,
+    explain: "Pada paragraf pertama disebutkan bahwa ketika hujan deras, mereka harus berjalan dengan hati-hati sehingga perjalanan terasa lebih lama.",
+    hint: "Baca paragraf pertama tentang hujan deras."
+  },
+  {
+    mission: 1, type: "mc",
+    q: "3. Tempat apa saja yang digambar Dika?",
+    options: [
+      "A. Rumah, sekolah, taman, dan perpustakaan",
+      "B. Rumah, pasar, rumah sakit, dan kebun",
+      "C. Sekolah, pantai, taman, dan terminal",
+      "D. Perpustakaan, gunung, pasar, dan sungai"
+    ],
+    correct: 0,
+    explain: "Paragraf kedua menyebutkan Dika menggambar rumah, sekolah, taman, dan perpustakaan.",
+    hint: "Cari daftar tempat di paragraf kedua."
+  },
+  {
+    mission: 1, type: "mc",
+    q: "4. Siapa yang membantu Dika memahami gambarnya?",
+    options: ["A. Ayah", "B. Kakak", "C. Guru", "D. Ibu"],
+    correct: 3,
+    explain: "Paragraf ketiga menyebutkan bahwa Ibu membantu Dika memahami gambar tersebut.",
+    hint: "Baca paragraf ketiga, cari kata 'membantu'."
+  },
+  {
+    mission: 2, type: "mc",
+    q: "5. Apa yang dimaksud dengan jarak dalam bacaan tersebut?",
+    options: [
+      "A. Waktu untuk menyelesaikan tugas",
+      "B. Ukuran jauh atau dekat antara tempat",
+      "C. Jumlah buku yang dibaca",
+      "D. Banyaknya orang yang berjalan"
+    ],
+    correct: 1,
+    explain: "Dalam bacaan, jarak dijelaskan sebagai ukuran jauh atau dekat antara satu tempat dengan tempat lainnya.",
+    hint: "Pahami makna kata 'jarak' dari kalimat di sekitarnya."
+  },
+  {
+    mission: 2, type: "mc",
+    q: "6. Mengapa perpustakaan terasa semakin dekat bagi Dika?",
+    options: [
+      "A. Karena perpustakaan pindah ke rumahnya",
+      "B. Karena ia selalu pergi bersama ibunya",
+      "C. Karena ia sering mengunjungi perpustakaan",
+      "D. Karena sekolahnya semakin jauh"
+    ],
+    correct: 2,
+    explain: "Paragraf keempat menyebutkan perpustakaan terasa semakin dekat karena Dika sering pergi ke sana.",
+    hint: "Baca paragraf keempat tentang perpustakaan."
+  },
+  {
+    mission: 2, type: "mc",
+    q: "7. Pernyataan yang sesuai dengan isi bacaan adalah ....",
+    options: [
+      "A. Rumah Dika berada di dalam sekolah.",
+      "B. Dika tidak suka membaca buku.",
+      "C. Ibu melarang Dika menggambar.",
+      "D. Dika sering membaca buku di perpustakaan."
+    ],
+    correct: 3,
+    explain: "Paragraf keempat menyebutkan Dika sering mengunjungi perpustakaan untuk membaca buku.",
+    hint: "Cek satu per satu pernyataan dengan isi bacaan."
+  },
+  {
+    mission: 3, type: "mc",
+    q: "8. Apa gagasan utama paragraf ketiga?",
+    options: [
+      "A. Dika senang bermain ketika hujan.",
+      "B. Ibu menjelaskan bahwa jarak dapat terlihat berbeda berdasarkan letak dan cara melihat.",
+      "C. Dika ingin pindah sekolah.",
+      "D. Perpustakaan selalu ramai pengunjung."
+    ],
+    correct: 1,
+    explain: "Gagasan utama paragraf ketiga adalah penjelasan Ibu bahwa jarak dapat terlihat berbeda bergantung pada letak benda dan cara melihatnya.",
+    hint: "Cari kalimat utama di paragraf ketiga — biasanya di awal paragraf."
+  },
+  {
+    mission: 3, type: "mc",
+    q: "9. Apa yang dapat disimpulkan dari bacaan tersebut?",
+    options: [
+      "A. Semua tempat yang jauh tidak dapat dikunjungi.",
+      "B. Jarak hanya dapat diketahui melalui gambar.",
+      "C. Memahami lingkungan berarti mengenali jarak, arah, dan hubungan antartempat.",
+      "D. Tempat yang dekat selalu lebih besar daripada tempat yang jauh."
+    ],
+    correct: 2,
+    explain: "Pada paragraf terakhir, Dika menyadari bahwa memahami lingkungan berarti mengenali tempat, arah, dan hubungan antartempat.",
+    hint: "Baca paragraf terakhir untuk menemukan simpulan."
+  },
+  {
+    mission: 3, type: "mc",
+    q: "10. Apa pesan yang dapat diambil dari bacaan tersebut?",
+    options: [
+      "A. Kita perlu mengenali lingkungan dan memahami hubungan antartempat.",
+      "B. Kita sebaiknya tidak pergi ke perpustakaan.",
+      "C. Menggambar lingkungan merupakan kegiatan yang tidak berguna.",
+      "D. Kita harus menghindari perjalanan saat cuaca cerah."
+    ],
+    correct: 0,
+    explain: "Pesan utama bacaan adalah pentingnya mengenali lingkungan dan memahami hubungan antartempat.",
+    hint: "Pikirkan pesan moral dari keseluruhan cerita."
+  }
+];
+
+const Content = { text: DEFAULT_TEXT, questions: DEFAULT_QUESTIONS };
+
+function loadContent() {
+  try {
+    const t = localStorage.getItem('astro_text');
+    const q = localStorage.getItem('astro_questions');
+    if (t) Content.text = t;
+    if (q) {
+      const parsed = JSON.parse(q);
+      if (Array.isArray(parsed) && parsed.length) Content.questions = parsed;
+    }
+  } catch(e) { console.warn(e); }
+}
+loadContent();
+
+/* ============================================================
+   DOM
+   ============================================================ */
+const $ = id => document.getElementById(id);
+const screens = {
+  identity: $('screen-identity'),
+  reading:  $('screen-reading'),
+  game:     $('screen-game'),
+  result:   $('screen-result'),
+  badges:   $('screen-badges'),
+  teacher:  $('screen-teacher')
+};
+let previousScreen = 'identity';
+
+function showScreen(name) {
+  Object.values(screens).forEach(s => s.classList.remove('active'));
+  if (screens[name]) screens[name].classList.add('active');
+  previousScreen = name;
+}
+
+/* ============================================================
+   IDENTITY
+   ============================================================ */
+$('inputClass').addEventListener('change', e => {
+  $('inputClassOther').style.display = e.target.value === 'Lainnya' ? 'block' : 'none';
+});
+
+$('btnStartMission').onclick = () => {
+  const name = $('inputName').value.trim();
+  let kelas = $('inputClass').value;
+  if (kelas === 'Lainnya') kelas = $('inputClassOther').value.trim();
+  if (!name || !kelas) {
+    showModal('⚠️','Ups!','Ups, lengkapi nama dan kelasmu terlebih dahulu, ya!',
+      [{label:'OK', cls:'btn-primary', action:closeModal}]);
+    return;
+  }
+  GameState.name = name;
+  GameState.kelas = kelas;
+  ensureAudio();
+  if (musicEnabled && !musicPlaying) startMusic();
+  sfxClick();
+
+  const sapa = `Halo, ${name} dari kelas ${kelas}! Aku Astro. Siap menjelajahi luar angkasa dan menaklukkan misi membaca hari ini?`;
+  $('astroReadingDialog').textContent = sapa;
+
+  const paragraphs = Content.text.split('\n').filter(p=>p.trim());
+  $('readingPanel').innerHTML = paragraphs.map(p => `<p>${p}</p>`).join('') +
+    '<p class="note">Catatan: Bacaan di atas merupakan teks latihan orisinal bertema "Jauh Dekat", bukan salinan teks resmi buku pelajaran.</p>';
+
+  showScreen('reading');
+};
+
+$('btnTeacherPanel').onclick = () => {
+  sfxClick();
+  $('teacherText').value = Content.text;
+  $('teacherQuestions').value = JSON.stringify(Content.questions, null, 2);
+  renderTeacherRecap();
+  showScreen('teacher');
+};
+
+/* ============================================================
+   READING
+   ============================================================ */
+$('btnZoom').onclick = () => { $('readingPanel').classList.add('zoom'); };
+$('btnZoomOut').onclick = () => { $('readingPanel').classList.remove('zoom'); };
+$('btnContinue').onclick = () => { sfxClick(); startMission(); };
+
+/* ============================================================
+   GAME ENGINE
+   ============================================================ */
+let session = null;
+
+function startMission() {
+  GameState.currentQuestionIndex = 0;
+  GameState.missionsCompleted = [];
+  GameState.m3Correct = 0;
+  GameState.m3Wrong = 0;
+  session = { answered: false, selected: null, usedHint: false };
+  showScreen('game');
+  loadQuestion();
+}
+
+function getCurrentQuestion() {
+  return Content.questions[GameState.currentQuestionIndex];
+}
+
+function loadQuestion() {
+  const q = getCurrentQuestion();
+  if (!q) { finishGame(); return; }
+
+  session.answered = false;
+  session.selected = null;
+  session.usedHint = false;
+
+  const mission = q.mission || 1;
+  $('hudMission').textContent = `Misi ${mission}`;
+  $('hudProgressText').textContent = `${GameState.currentQuestionIndex + 1}/${Content.questions.length}`;
+  $('hudProgressFill').style.width = ((GameState.currentQuestionIndex) / Content.questions.length * 100) + '%';
+
+  $('questionBox').innerHTML = `<span class="q-num">Soal ${GameState.currentQuestionIndex + 1} dari ${Content.questions.length}</span>` + q.q;
+  $('feedbackBox').textContent = '';
+  $('feedbackBox').className = 'feedback-box';
+  $('btnCheck').disabled = true;
+  $('btnCheck').style.display = 'inline-block';
+  $('btnNext').style.display = 'none';
+  $('btnHint').disabled = false;
+
+  astroSay(getMissionWelcome(mission));
+
+  const grid = $('answersGrid');
+  grid.innerHTML = '';
+
+  if (q.type === 'mc') {
+    q.options.forEach((opt, i) => {
+      const btn = document.createElement('button');
+      btn.className = 'answer-btn';
+      btn.textContent = opt;
+      btn.onclick = () => selectAnswer(btn, i);
+      grid.appendChild(btn);
+    });
+  } else if (q.type === 'tf') {
+    ['✅ Benar','❌ Salah'].forEach((opt, i) => {
+      const btn = document.createElement('button');
+      btn.className = 'answer-btn';
+      btn.style.textAlign = 'center';
+      btn.textContent = opt;
+      btn.onclick = () => selectAnswer(btn, i === 0);
+      grid.appendChild(btn);
+    });
+  }
+}
+
+function getMissionWelcome(m) {
+  if (m === 1) return 'Misi 1 — Persiapan Peluncuran! Jawab soal dasar dari teks, ya!';
+  if (m === 2) return 'Misi 2 — Menembus Galaksi! Perhatikan makna kata dan gagasan pokok!';
+  return 'Misi 3 — Menjelajahi Planet Pengetahuan! Ayo simpulkan isi bacaan!';
+}
+function astroSay(text) { $('astroGameDialog').textContent = text; }
+
+function selectAnswer(btn, val) {
+  if (session.answered) return;
+  sfxClick();
+  document.querySelectorAll('#answersGrid .answer-btn').forEach(b => b.style.outline = '');
+  btn.style.outline = '4px solid #FFEB3B';
+  session.selected = val;
+  $('btnCheck').disabled = false;
+}
+
+$('btnHint').onclick = () => {
+  if (session.answered) return;
+  const q = getCurrentQuestion();
+  session.usedHint = true;
+  sfxClick();
+  astroSay('💡 ' + (q.hint || 'Baca kembali paragraf yang berkaitan dengan pertanyaan ini!'));
+  $('btnHint').disabled = true;
+};
+
+$('btnCheck').onclick = () => {
+  if (session.answered) return;
+  session.answered = true;
+  const q = getCurrentQuestion();
+  const isCorrect = (session.selected === q.correct);
+  const isFirstTry = !GameState.answeredWrongIds.has(GameState.currentQuestionIndex);
+
+  document.querySelectorAll('#answersGrid .answer-btn').forEach((b, i) => {
+    b.disabled = true;
+    b.style.outline = '';
+    let val;
+    if (q.type === 'mc') val = i;
+    else if (q.type === 'tf') val = (i === 0);
+    if (val === q.correct) b.classList.add('correct');
+    else if (val === session.selected && !isCorrect) b.classList.add('wrong');
+  });
+
+  if (isCorrect) {
+    const mission = q.mission || 1;
+    if (mission === 3) GameState.m3Correct++;
+
+    let points = 100;
+    if (!isFirstTry || session.usedHint) points = 70;
+    GameState.score += points;
+    GameState.correct++;
+    GameState.totalAnswered++;
+
+    sfxCorrect();
+    $('feedbackBox').textContent = `✅ HEBAT! JAWABANMU BENAR! +${points} poin bintang.`;
+    $('feedbackBox').className = 'feedback-box correct';
+    astroCheer();
+    astroSay('🎉 ' + (q.explain || 'Luar biasa! Kamu hebat!'));
+    launchRocket();
+  } else {
+    if ((q.mission || 1) === 3) GameState.m3Wrong++;
+    if (isFirstTry) {
+      GameState.wrong++;
+      GameState.totalAnswered++;
+    }
+    GameState.answeredWrongIds.add(GameState.currentQuestionIndex);
+    sfxWrong();
+    $('feedbackBox').textContent = `❌ BELUM TEPAT, AYO COBA LAGI!`;
+    $('feedbackBox').className = 'feedback-box wrong';
+    astroSad();
+    astroSay('💡 ' + (q.hint || 'Coba baca kembali paragraf yang berkaitan!'));
+    returnRocket();
+  }
+
+  updateHUD();
+  $('btnCheck').style.display = 'none';
+  $('btnHint').disabled = true;
+  $('btnNext').style.display = 'inline-block';
+  $('btnNext').textContent = (GameState.currentQuestionIndex < Content.questions.length - 1) ? '➡️ Soal Berikutnya' : '🏁 Selesai Misi';
+};
+
+function updateHUD() {
+  $('hudScore').textContent = GameState.score;
+  const total = GameState.correct + GameState.wrong;
+  const acc = total > 0 ? Math.round((GameState.correct/total)*100) : 0;
+  $('hudAccuracy').textContent = acc + '%';
+}
+
+/* ============================================================
+   ROCKET ANIMATION
+   ============================================================ */
+function launchRocket() {
+  const rocket = $('rocket');
+  rocket.classList.remove('returning');
+  rocket.classList.add('flying');
+  sfxLaunch();
+  for (let i=0;i<8;i++) {
+    setTimeout(() => {
+      const s = document.createElement('div');
+      s.className = 'smoke';
+      const rect = rocket.getBoundingClientRect();
+      s.style.position = 'fixed';
+      s.style.left = (rect.left + rect.width/2 - 20 + (Math.random()-0.5)*30) + 'px';
+      s.style.top  = (rect.top + rect.height) + 'px';
+      document.body.appendChild(s);
+      setTimeout(()=>s.remove(), 1500);
+    }, i*100);
+  }
+  for (let i=0;i<15;i++) {
+    setTimeout(() => {
+      const c = document.createElement('div');
+      c.className = 'confetti-star';
+      c.textContent = ['⭐','✨','🌟','💫'][Math.floor(Math.random()*4)];
+      c.style.left = (Math.random()*100) + 'vw';
+      c.style.top = '-50px';
+      document.body.appendChild(c);
+      setTimeout(()=>c.remove(), 3000);
+    }, i*80);
+  }
+  setTimeout(() => {
+    rocket.classList.remove('flying');
+    rocket.style.transform = 'translateX(-50%)';
+    rocket.style.left = '50%';
+    rocket.style.bottom = '16px';
+  }, 1700);
+}
+
+function returnRocket() {
+  const rocket = $('rocket');
+  rocket.style.transform = 'translateX(-50%) translateY(-120vh) rotate(180deg) scale(0.5)';
+  rocket.style.opacity = '0';
+  setTimeout(() => {
+    rocket.classList.add('returning');
+    sfxLanding();
+    setTimeout(() => {
+      rocket.classList.remove('returning');
+      rocket.style.transform = 'translateX(-50%)';
+      rocket.style.left = '50%';
+      rocket.style.bottom = '16px';
+      rocket.style.opacity = '1';
+    }, 1700);
+  }, 100);
+}
+
+/* ============================================================
+   ASTRO EXPRESSIONS
+   ============================================================ */
+function astroCheer() {
+  const a = $('astroGame');
+  a.classList.remove('sad');
+  a.classList.add('celebrate');
+  setTimeout(()=>a.classList.remove('celebrate'), 2200);
+}
+function astroSad() {
+  const a = $('astroGame');
+  a.classList.remove('celebrate');
+  a.classList.add('sad');
+  setTimeout(()=>a.classList.remove('sad'), 1400);
+}
+
+/* ============================================================
+   NEXT
+   ============================================================ */
+$('btnNext').onclick = () => {
+  sfxClick();
+  const q = getCurrentQuestion();
+  if (!q) return;
+
+  const currentMission = q.mission || 1;
+  const nextIdx = GameState.currentQuestionIndex + 1;
+
+  if (nextIdx < Content.questions.length) {
+    const nextMission = Content.questions[nextIdx].mission || 1;
+    if (nextMission !== currentMission) {
+      completeMission(currentMission, () => {
+        GameState.currentQuestionIndex = nextIdx;
+        loadQuestion();
+      });
+      return;
+    }
+    GameState.currentQuestionIndex = nextIdx;
+    loadQuestion();
+  } else {
+    completeMission(currentMission, () => finishGame());
+  }
+};
+
+function completeMission(mission, callback) {
+  GameState.score += 200;
+  if (!GameState.missionsCompleted.includes(mission)) {
+    GameState.missionsCompleted.push(mission);
+  }
+  if (mission === 1) grantBadge('bumi');
+  if (mission === 2) grantBadge('pilot');
+  if (mission === 3) {
+    const total = GameState.m3Correct + GameState.m3Wrong;
+    const acc = total > 0 ? (GameState.m3Correct / total) * 100 : 0;
+    if (acc >= 80) grantBadge('penakluk');
+  }
+
+  sfxMissionComplete();
+  updateHUD();
+
+  const missionNames = { 1:'Persiapan Peluncuran', 2:'Menembus Galaksi', 3:'Menjelajahi Planet Pengetahuan' };
+  showModal('🎉', `Misi ${mission} Selesai!`,
+    `Kamu menyelesaikan Misi ${mission} — ${missionNames[mission]}!<br>Bonus +200 poin bintang.<br>Skor: ${GameState.score}`,
+    [{ label:'Lanjut', cls:'btn-primary', action: () => { closeModal(); callback(); } }]);
+}
+
+/* ============================================================
+   FINISH
+   ============================================================ */
+function finishGame() {
+  GameState.score += 500;
+  grantBadge('juara');
+  showResult();
+}
+
+function showResult() {
+  $('rName').textContent = GameState.name;
+  $('rClass').textContent = GameState.kelas;
+  $('rTotal').textContent = GameState.correct + GameState.wrong;
+  $('rCorrect').textContent = GameState.correct;
+  $('rWrong').textContent = GameState.wrong;
+  $('rScore').textContent = GameState.score;
+  const total = GameState.correct + GameState.wrong;
+  const acc = total > 0 ? Math.round((GameState.correct/total)*100) : 0;
+  $('rAccuracy').textContent = acc + '%';
+  $('rStatus').textContent = GameState.missionsCompleted.length === 3 ? '✅ Selesai' : '⚠️ Belum selesai';
+
+  const badgeNames = GameState.badges.map(id => BADGES[id]?.name || id);
+  $('rBadges').innerHTML = badgeNames.length
+    ? badgeNames.map(n => `🏅 ${n}`).join('<br>') : 'Belum ada lencana.';
+
+  showScreen('result');
+
+  for (let i=0;i<40;i++) {
+    setTimeout(() => {
+      const c = document.createElement('div');
+      c.className = 'confetti-star';
+      c.textContent = ['⭐','✨','🌟','💫','🌠'][Math.floor(Math.random()*5)];
+      c.style.left = (Math.random()*100) + 'vw';
+      c.style.top = '-50px';
+      c.style.fontSize = (16 + Math.random()*20) + 'px';
+      document.body.appendChild(c);
+      setTimeout(()=>c.remove(), 3200);
+    }, i*80);
+  }
+  GameState.badges.forEach((bid, i) => {
+    setTimeout(() => {
+      const b = BADGES[bid];
+      if (!b) return;
+      const flyer = document.createElement('div');
+      flyer.className = 'badge-fly';
+      flyer.innerHTML = renderBadgeSVG(b, 110);
+      flyer.style.animationDuration = '4s';
+      document.body.appendChild(flyer);
+      requestAnimationFrame(() => flyer.classList.add('show'));
+      setTimeout(() => flyer.remove(), 4200);
+    }, i * 350);
+  });
+  saveRecap();
+}
+
+/* ============================================================
+   BADGE GRANT
+   ============================================================ */
+function grantBadge(id) {
+  if (GameState.badges.includes(id)) return;
+  const b = BADGES[id];
+  if (!b) return;
+  GameState.badges.push(id);
+  $('badgePopupVisual').innerHTML = renderBadgeSVG(b, 150);
+  $('badgePopupTitle').textContent = b.name;
+  $('badgePopupDesc').textContent = 'Kamu mendapatkannya karena: ' + b.desc;
+  $('badgePopup').classList.add('show');
+  sfxBadge();
+}
+
+$('btnCloseBadgePopup').onclick = () => {
+  $('badgePopup').classList.remove('show');
+  const lastId = GameState.badges[GameState.badges.length - 1];
+  if (lastId) {
+    const b = BADGES[lastId];
+    if (b) {
+      const flyer = document.createElement('div');
+      flyer.className = 'badge-fly';
+      flyer.innerHTML = renderBadgeSVG(b, 110);
+      document.body.appendChild(flyer);
+      requestAnimationFrame(() => flyer.classList.add('show'));
+      setTimeout(() => flyer.remove(), 3800);
+    }
+  }
+};
+
+/* ============================================================
+   BADGE COLLECTION
+   ============================================================ */
+function renderBadgeCollection() {
+  const cont = $('badgeCollection');
+  cont.innerHTML = '';
+  Object.values(BADGES).forEach(b => {
+    const owned = GameState.badges.includes(b.id);
+    const div = document.createElement('div');
+    div.className = 'badge-item' + (owned ? '' : ' locked');
+    div.innerHTML = `
+      ${renderBadgeSVG(b, 100)}
+      <div class="badge-name">${b.name}</div>
+      <div class="badge-desc">${owned ? b.desc : '🔒 Belum terbuka'}</div>
+    `;
+    cont.appendChild(div);
+  });
+}
+
+/* ============================================================
+   MODAL HELPERS
+   ============================================================ */
+function showModal(emoji, title, message, actions) {
+  $('modalEmoji').textContent = emoji;
+  $('modalTitle').textContent = title;
+  $('modalMessage').innerHTML = message;
+  const box = $('modalActions');
+  box.innerHTML = '';
+  (actions || [{label:'OK', cls:'btn-primary', action:closeModal}]).forEach(a => {
+    const b = document.createElement('button');
+    b.className = 'btn ' + (a.cls || 'btn-primary');
+    b.textContent = a.label;
+    b.onclick = a.action;
+    box.appendChild(b);
+  });
+  $('modalOverlay').classList.add('show');
+}
+function closeModal() { $('modalOverlay').classList.remove('show'); }
+
+/* ============================================================
+   GLOBAL BUTTONS
+   ============================================================ */
+$('musicBtn').onclick = () => {
+  musicEnabled = !musicEnabled;
+  $('musicBtn').textContent = musicEnabled ? '🎵' : '🔇';
+  if (musicEnabled) { ensureAudio(); startMusic(); }
+  else { stopMusic(); }
+};
+$('soundBtn').onclick = () => {
+  sfxEnabled = !sfxEnabled;
+  $('soundBtn').textContent = sfxEnabled ? '🔊' : '🔇';
+  if (sfxEnabled) { ensureAudio(); sfxClick(); }
+};
+$('pauseBtn').onclick = () => {
+  if (screens.game.classList.contains('active')) $('pauseModal').classList.add('show');
+};
+$('btnResume').onclick = () => $('pauseModal').classList.remove('show');
+$('btnRestartMission').onclick = () => { $('pauseModal').classList.remove('show'); startMission(); };
+$('btnToMenuPause').onclick = () => { $('pauseModal').classList.remove('show'); showScreen('identity'); };
+$('homeBtn').onclick = () => {
+  showModal('🏠','Kembali ke Pangkalan?','Progres saat ini akan hilang.',
+    [
+      { label:'Batal', cls:'btn-secondary', action:closeModal },
+      { label:'Ya', cls:'btn-danger', action: () => { closeModal(); showScreen('identity'); }}
+    ]);
+};
+
+/* ============================================================
+   RESULT BUTTONS
+   ============================================================ */
+$('btnPlayAgain').onclick = () => {
+  sfxClick();
+  Object.assign(GameState, {
+    score:0, correct:0, wrong:0, totalAnswered:0, currentQuestionIndex:0,
+    missionsCompleted:[], badges:[], m3Correct:0, m3Wrong:0
+  });
+  GameState.answeredWrongIds.clear();
+  showScreen('identity');
+};
+$('btnPrint').onclick = () => window.print();
+$('btnToMenuFromResult').onclick = () => showScreen('identity');
+
+/* ============================================================
+   TEACHER PANEL
+   ============================================================ */
+$('btnSaveTeacher').onclick = () => {
+  const text = $('teacherText').value;
+  const qRaw = $('teacherQuestions').value;
+  let qs;
+  try {
+    qs = JSON.parse(qRaw);
+    if (!Array.isArray(qs)) throw new Error('Harus array');
+  } catch(e) {
+    showModal('⚠️','Format Salah','Format JSON soal tidak valid. Periksa kembali, ya!',
+      [{label:'OK', cls:'btn-primary', action:closeModal}]);
+    return;
+  }
+  Content.text = text;
+  Content.questions = qs;
+  try {
+    localStorage.setItem('astro_text', text);
+    localStorage.setItem('astro_questions', JSON.stringify(qs));
+  } catch(e) { console.warn(e); }
+  showModal('💾','Tersimpan!','Teks dan soal berhasil disimpan di browser ini.',
+    [{label:'OK', cls:'btn-primary', action:closeModal}]);
+};
+$('btnCloseTeacher').onclick = () => { sfxClick(); showScreen('identity'); };
+
+/* ============================================================
+   RECAP GURU
+   ============================================================ */
+function saveRecap() {
+  try {
+    const arr = JSON.parse(localStorage.getItem('astro_recap') || '[]');
+    arr.push({
+      name: GameState.name, kelas: GameState.kelas,
+      score: GameState.score, correct: GameState.correct, wrong: GameState.wrong,
+      accuracy: (GameState.correct + GameState.wrong) > 0
+        ? Math.round((GameState.correct/(GameState.correct + GameState.wrong))*100) : 0,
+      badges: GameState.badges.map(id => BADGES[id]?.name || id).join(', '),
+      timestamp: new Date().toISOString()
+    });
+    localStorage.setItem('astro_recap', JSON.stringify(arr));
+  } catch(e) { console.warn(e); }
+}
+
+function renderTeacherRecap() {
+  try {
+    const arr = JSON.parse(localStorage.getItem('astro_recap') || '[]');
+    if (!arr.length) { $('teacherRecap').innerHTML = 'Belum ada data siswa.'; return; }
+    let html = '<table style="width:100%; border-collapse:collapse; font-size:0.85em;">';
+    html += '<tr style="background:#4FC3F7; color:white;"><th style="padding:4px;">Nama</th><th>Kelas</th><th>Skor</th><th>%</th><th>Lencana</th></tr>';
+    arr.forEach(r => {
+      html += `<tr style="border-bottom:1px solid #ccc;"><td style="padding:4px;">${r.name}</td><td>${r.kelas}</td><td>${r.score}</td><td>${r.accuracy}%</td><td style="font-size:0.8em;">${r.badges || '-'}</td></tr>`;
+    });
+    html += '</table>';
+    $('teacherRecap').innerHTML = html;
+  } catch(e) { $('teacherRecap').textContent = 'Gagal memuat rekap.'; }
+}
+
+$('btnDownloadCSV').onclick = () => {
+  try {
+    const arr = JSON.parse(localStorage.getItem('astro_recap') || '[]');
+    if (!arr.length) {
+      showModal('📭','Belum Ada Data','Belum ada hasil siswa yang tersimpan.',
+        [{label:'OK', cls:'btn-primary', action:closeModal}]);
+      return;
+    }
+    const header = 'Nama,Kelas,Skor,Benar,Salah,Akurasi,Lencana,Waktu\n';
+    const rows = arr.map(r =>
+      `"${r.name}","${r.kelas}",${r.score},${r.correct},${r.wrong},${r.accuracy}%,"${r.badges}","${r.timestamp}"`
+    ).join('\n');
+    const blob = new Blob([header + rows], { type:'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'rekap_misi_luar_angkasa.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  } catch(e) { console.warn(e); }
+};
+
+$('btnClearRecap').onclick = () => {
+  showModal('🗑️','Hapus Semua Rekap?','Semua data hasil siswa akan dihapus. Yakin?',
+    [
+      {label:'Batal', cls:'btn-secondary', action:closeModal},
+      {label:'Ya, Hapus', cls:'btn-danger', action:() => {
+        localStorage.removeItem('astro_recap');
+        renderTeacherRecap();
+        closeModal();
+      }}
+    ]);
+};
+
+/* ============================================================
+   BADGES SCREEN NAV
+   ============================================================ */
+$('btnBackFromBadges').onclick = () => {
+  sfxClick();
+  showScreen(previousScreen === 'badges' ? 'identity' : previousScreen);
+};
+
+/* ============================================================
+   INIT
+   ============================================================ */
+document.addEventListener('click', () => ensureAudio(), { once:true });
+setTimeout(() => $('inputName').focus(), 400);
+
+document.addEventListener('click', function startOnce() {
+  if (musicEnabled && !musicPlaying) { ensureAudio(); startMusic(); }
+  document.removeEventListener('click', startOnce);
+}, { once: true });
+
+console.log('%c🚀 Misi Luar Angkasa siap!','color:#4FC3F7; font-size:16px; font-weight:bold;');
+console.log('%cSoal "Jauh Dekat" sudah terisi otomatis. Selamat bermain!','color:#FFC107; font-size:12px;');
+</script>
+</body>
+</html>
